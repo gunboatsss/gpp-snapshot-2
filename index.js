@@ -34,13 +34,20 @@ async function readDelegationFile() {
         delegationMap.set(line[0], line[1]);
     }
     allAddressCount = delegationMap.size;
+    let sum = Array.from(delegationMap.values()).map(
+        x => Number(x)
+    )
+    .reduce(
+        (previousValue, currentValue) => previousValue + currentValue
+    )
+    console.log(32000-sum)
     return delegationMap;
 }
 //load all data
 Promise.all([readDelegationFile(), getClaimedAddress()]).then(
     (value) => {
-        claimedWriteStream.write("address,txHash\n");
         let claimedWriteStream = fs.createWriteStream('./snapshot/claimed.csv');
+        claimedWriteStream.write("address,txHash\n");
         let addressToSend = new Map(value[0]);
         //write new file + deleted sent address
         value[1].forEach((value, key) => {
@@ -48,7 +55,12 @@ Promise.all([readDelegationFile(), getClaimedAddress()]).then(
             claimedWriteStream.write(key + ',' + value + '\n');
         })
         AddressToSendCount = addressToSend.size;
+        let toBeSend = fs.createWriteStream('snapshot/tobesend.csv');
+        addressToSend.forEach((value, key) => {
+            toBeSend.write(key + ',' + value + '\n');
+        });
         console.log("All address = " + allAddressCount + " Claimed Address = " + claimedAddressCount + " Address to send count = " + AddressToSendCount);
-        fs.writeFileSync('snapshot/tobesend.json', JSON.stringify(Array.from(addressToSend)));
+        claimedWriteStream.close();
+        toBeSend.close();
     }
 )
